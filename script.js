@@ -22,6 +22,22 @@ document.querySelector("[data-add-request-header-btn]")
     requestHeadersContainer.append(createKeyValuePair())
   })
 
+  axios.interceptors.request.use(request => {
+    request.customData = request.customData || {}
+    request.customData.startTime = new Date().getTime()
+    return request
+  })
+
+  function updateEndTime(response) {
+    response.customData = response.customData || {}
+    response.customData.time =
+      new Date().getTime() - response.config.customData.startTime
+    return response
+  }
+  
+  axios.interceptors.response.use(updateEndTime, e => {
+    return Promise.reject(updateEndTime(e.response))
+  })  
 
   form.addEventListener("submit", e => {
     e.preventDefault()
@@ -37,13 +53,22 @@ document.querySelector("[data-add-request-header-btn]")
         document
           .querySelector("[data-response-section]")
           .classList.remove("d-none")
-        // updateResponseDetails(response)
+        updateResponseDetails(response)
         // updateResponseEditor(response.data)
         updateResponseHeaders(response.headers)
         console.log(response)
       })
 })
 
+
+function updateResponseDetails(response) {
+  document.querySelector("[data-status]").textContent = response.status
+  document.querySelector("[data-time]").textContent = response.customData.time
+  document.querySelector("[data-size]").textContent = prettyBytes(
+    JSON.stringify(response.data).length +
+      JSON.stringify(response.headers).length
+  )
+}
 
 function updateResponseHeaders(headers) {
   responseHeadersContainer.innerHTML = ""
